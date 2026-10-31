@@ -4,8 +4,6 @@ Integrates database lifespan seeding, hardened security middleware,
 robust RESTful API endpoints, and static file serving for FestivaFlow.
 """
 
-from __future__ import annotations
-
 import csv
 import io
 import json
@@ -13,7 +11,7 @@ import logging
 import os
 from contextlib import asynccontextmanager
 from datetime import datetime
-from typing import Any
+from typing import Any, Dict, List, Optional
 
 from fastapi import (
     Depends,
@@ -55,20 +53,20 @@ from backend.app.security import (
     SlidingWindowRateLimiter,
 )
 
-logger = logging.getLogger("festivaflow")
-
 # ============================================================================
 # LIFESPAN & APPLICATION SETUP
 # ============================================================================
 
 # Create database schema tables and ensure seed data exists immediately upon module import
+Base.metadata.create_all(bind=engine)
+logger = logging.getLogger('festivaflow')
+
 try:
-    Base.metadata.create_all(bind=engine)
     _init_db = SessionLocal()
     crud.seed_demo_data(_init_db)
     _init_db.close()
 except (RuntimeError, ValueError, Exception) as exc:
-    logger.info("Startup initialization status: %s", exc)
+    logger.info('Database startup initialization notice: %s', exc)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -99,10 +97,10 @@ app = FastAPI(
 # 1. Rate Limiting Middleware
 app.add_middleware(SlidingWindowRateLimiter, requests_per_minute=100)
 
-# 3. Hardened OWASP Security Headers Middleware
+# 2. Hardened OWASP Security Headers Middleware
 app.add_middleware(SecurityHeadersMiddleware)
 
-# 4. CORS Middleware with environment override
+# 3. CORS Middleware with environment override
 allowed_origins_raw = os.getenv("CORS_ORIGINS", "*")
 allowed_origins = [o.strip() for o in allowed_origins_raw.split(",") if o.strip()]
 
@@ -123,9 +121,9 @@ app.add_middleware(
     "/api/health",
     tags=["System"],
     summary="Service Health Check",
-    response_model=dict[str, Any],
+    response_model=Dict[str, Any],
 )
-def health_check() -> dict[str, Any]:
+def health_check() -> Dict[str, Any]:
     """Return operational health status and system metadata."""
     return {
         "status": "healthy",
@@ -144,16 +142,16 @@ def health_check() -> dict[str, Any]:
     "/api/events",
     tags=["Events"],
     summary="List celebration events",
-    response_model=dict[str, Any],
+    response_model=Dict[str, Any],
 )
 def list_events(
     skip: int = Query(0, ge=0, description="Pagination offset"),
     limit: int = Query(20, ge=1, le=100, description="Page limit"),
-    search: str | None = Query(None, description="Search term for title or venue"),
-    status: str | None = Query(None, description="Status filter"),
-    category: str | None = Query(None, description="Category filter"),
+    search: Optional[str] = Query(None, description="Search term for title or venue"),
+    status: Optional[str] = Query(None, description="Status filter"),
+    category: Optional[str] = Query(None, description="Category filter"),
     db: Session = Depends(get_db),
-) -> dict[str, Any]:
+) -> Dict[str, Any]:
     """Retrieve a paginated, filterable catalog of celebration events."""
     events, total = crud.get_events(
         db=db,
@@ -336,10 +334,7 @@ def export_event_plan(
 
     # Section 2: Budget Summary
     writer.writerow(["=== BUDGET & FINANCIAL SUMMARY ==="])
-    writer.writerow([
-        "Total Allocated", "Total Estimated", "Total Actual Spent",
-        "Total Paid", "Pending", "Remaining Balance", "Burn Rate %", "Over Budget",
-    ])
+    writer.writerow(["Total Allocated", "Total Estimated", "Total Actual Spent", "Total Paid", "Pending", "Remaining Balance", "Burn Rate %", "Over Budget"])
     writer.writerow([
         budget_summary.total_budget,
         budget_summary.total_estimated,
@@ -354,10 +349,7 @@ def export_event_plan(
 
     # Section 3: RSVP Summary
     writer.writerow(["=== RSVP & ATTENDANCE SUMMARY ==="])
-    writer.writerow([
-        "Total Invited", "Attending", "Pending", "Declined",
-        "Total Attendees (w/ +1)", "Capacity", "Utilization %",
-    ])
+    writer.writerow(["Total Invited", "Attending", "Pending", "Declined", "Total Attendees (w/ +1)", "Capacity", "Utilization %"])
     writer.writerow([
         rsvp_summary.total_guests,
         rsvp_summary.attending_count,
@@ -373,34 +365,21 @@ def export_event_plan(
     writer.writerow(["=== GUEST LIST ==="])
     writer.writerow(["ID", "Name", "Email", "Phone", "Dietary Preferences", "RSVP Status", "Plus Ones", "Notes"])
     for g in guests:
-        writer.writerow([
-            g.id, g.name, g.email, g.phone or "", g.dietary_preferences,
-            g.rsvp_status, g.plus_one_count, g.notes or "",
-        ])
+        writer.writerow([g.id, g.name, g.email, g.phone or "", g.dietary_preferences, g.rsvp_status, g.plus_one_count, g.notes or ""])
     writer.writerow([])
 
     # Section 5: Expenses Table
     writer.writerow(["=== ITEMIZED EXPENSES ==="])
     writer.writerow(["ID", "Item Name", "Category", "Estimated ($)", "Actual ($)", "Paid Status", "Due Date", "Notes"])
     for ex in expenses:
-        writer.writerow([
-            ex.id, ex.item_name, ex.category, ex.estimated_cost, ex.actual_cost,
-            "PAID" if ex.is_paid else "PENDING",
-            ex.due_date.isoformat() if ex.due_date else "",
-            ex.notes or "",
-        ])
+        writer.writerow([ex.id, ex.item_name, ex.category, ex.estimated_cost, ex.actual_cost, "PAID" if ex.is_paid else "PENDING", ex.due_date.isoformat() if ex.due_date else "", ex.notes or ""])
     writer.writerow([])
 
     # Section 6: Checklist Tasks Table
     writer.writerow(["=== TIMELINE & TASKS ==="])
     writer.writerow(["ID", "Title", "Category", "Priority", "Assignee", "Due Date", "Completed", "Description"])
     for t in tasks:
-        writer.writerow([
-            t.id, t.title, t.category, t.priority, t.assignee or "",
-            t.due_date.isoformat() if t.due_date else "",
-            "DONE" if t.is_completed else "OPEN",
-            t.description or "",
-        ])
+        writer.writerow([t.id, t.title, t.category, t.priority, t.assignee or "", t.due_date.isoformat() if t.due_date else "", "DONE" if t.is_completed else "OPEN", t.description or ""])
 
     output.seek(0)
     return StreamingResponse(
@@ -420,12 +399,12 @@ def export_event_plan(
     "/api/events/{event_id}/guests",
     tags=["Guests"],
     summary="List guests for event",
-    response_model=list[GuestResponse],
+    response_model=List[GuestResponse],
 )
 def list_event_guests(
     event_id: int,
     db: Session = Depends(get_db),
-) -> list[GuestResponse]:
+) -> List[GuestResponse]:
     """Retrieve all guests associated with a specific event."""
     event = crud.get_event(db, event_id)
     if not event:
@@ -457,7 +436,7 @@ def create_guest(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
-        ) from e
+        )
 
 
 @app.put(
@@ -484,7 +463,7 @@ def update_guest(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
-        ) from e
+        )
 
 
 @app.delete(
@@ -515,12 +494,12 @@ def delete_guest(
     "/api/events/{event_id}/expenses",
     tags=["Expenses"],
     summary="List expenses for event",
-    response_model=list[ExpenseResponse],
+    response_model=List[ExpenseResponse],
 )
 def list_event_expenses(
     event_id: int,
     db: Session = Depends(get_db),
-) -> list[ExpenseResponse]:
+) -> List[ExpenseResponse]:
     """Retrieve all logged expenses for an event."""
     event = crud.get_event(db, event_id)
     if not event:
@@ -554,7 +533,7 @@ def create_expense(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
-        ) from e
+        )
 
 
 @app.put(
@@ -608,12 +587,12 @@ def delete_expense(
     "/api/events/{event_id}/tasks",
     tags=["Tasks"],
     summary="List tasks for event",
-    response_model=list[TaskResponse],
+    response_model=List[TaskResponse],
 )
 def list_event_tasks(
     event_id: int,
     db: Session = Depends(get_db),
-) -> list[TaskResponse]:
+) -> List[TaskResponse]:
     """Retrieve all milestones and checklist items for an event."""
     event = crud.get_event(db, event_id)
     if not event:
@@ -645,7 +624,7 @@ def create_task(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
-        ) from e
+        )
 
 
 @app.put(
@@ -697,16 +676,16 @@ def delete_task(
     "/api/vendors",
     tags=["Vendors"],
     summary="List directory vendors",
-    response_model=dict[str, Any],
+    response_model=Dict[str, Any],
 )
 def list_vendors(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
-    service_type: str | None = Query(None),
-    status: str | None = Query(None),
-    search: str | None = Query(None),
+    service_type: Optional[str] = Query(None),
+    status: Optional[str] = Query(None),
+    search: Optional[str] = Query(None),
     db: Session = Depends(get_db),
-) -> dict[str, Any]:
+) -> Dict[str, Any]:
     """Retrieve directory vendors with filtering."""
     vendors, total = crud.get_vendors(
         db=db,
@@ -841,20 +820,12 @@ if os.path.isdir(frontend_path):
     def serve_frontend_css():
         """Serve the custom accessible CSS stylesheet."""
         css_file = os.path.join(frontend_path, "styles.css")
-        return FileResponse(
-            css_file,
-            media_type="text/css",
-            headers={"Cache-Control": "public, max-age=86400, stale-while-revalidate=604800"},
-        )
+        return FileResponse(css_file, media_type="text/css")
 
     @app.get("/app.js", tags=["Frontend"], include_in_schema=False)
     def serve_frontend_js():
         """Serve the modular ES6 client application script."""
         js_file = os.path.join(frontend_path, "app.js")
-        return FileResponse(
-            js_file,
-            media_type="application/javascript",
-            headers={"Cache-Control": "public, max-age=86400, stale-while-revalidate=604800"},
-        )
+        return FileResponse(js_file, media_type="application/javascript")
 
     app.mount("/static", StaticFiles(directory=frontend_path), name="static")

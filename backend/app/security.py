@@ -9,13 +9,14 @@ import html
 import os
 import secrets
 import time
+from typing import Dict, List, Optional
 
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
 
-def sanitize_text(value: str | None) -> str | None:
+def sanitize_text(value: Optional[str]) -> Optional[str]:
     """Sanitize and HTML-escape string inputs to prevent Cross-Site Scripting (XSS).
 
     Args:
@@ -99,7 +100,7 @@ class SlidingWindowRateLimiter(BaseHTTPMiddleware):
             os.getenv("RATE_LIMIT_PER_MINUTE", str(requests_per_minute))
         )
         self.window_seconds: float = 60.0
-        self.requests_log: dict[str, list[float]] = {}
+        self.requests_log: Dict[str, List[float]] = {}
         self.rate_limiting_enabled: bool = (
             os.getenv("ENABLE_RATE_LIMIT", "true").lower() == "true"
         )

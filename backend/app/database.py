@@ -4,28 +4,16 @@ Provides SQLite connection pooling, foreign key constraint enforcement,
 and context-managed database session generators.
 """
 
-from __future__ import annotations
-
 import os
-import tempfile
-from collections.abc import Generator
+from typing import Generator
 
 from sqlalchemy import create_engine, event
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, declarative_base, sessionmaker
 
 # Environment variable configuration with safe fallback for local/test/Vercel environments
-_is_serverless = bool(
-    os.getenv("VERCEL")
-    or os.getenv("VERCEL_ENV")
-    or os.getenv("AWS_LAMBDA_FUNCTION_NAME")
-)
-_db_filename = (
-    os.path.join(tempfile.gettempdir(), "festivaflow.db").replace("\\", "/")
-    if _is_serverless
-    else "./festivaflow.db"
-)
-DATABASE_URL: str = os.getenv("DATABASE_URL", f"sqlite:///{_db_filename}")
+_default_db_path = "/tmp/festivaflow.db" if (os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME")) else "./festivaflow.db"
+DATABASE_URL: str = os.getenv("DATABASE_URL", f"sqlite:///{_default_db_path}")
 
 # SQLite connection arguments: disabling thread check for multi-threaded ASGI servers
 connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
@@ -72,7 +60,7 @@ def get_db() -> Generator[Session, None, None]:
     Ensures:
         Session is closed deterministically after request lifecycle completion.
     """
-    db = SessionLocal()
+    db: Session = SessionLocal()
     try:
         yield db
     finally:

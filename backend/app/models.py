@@ -61,27 +61,15 @@ class Event(Base):
         DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
     )
 
-    # Relationships with cascade deletion and eager selectin loading (prevents N+1 queries)
+    # Relationships with cascade deletion
     guests = relationship(
-        "Guest",
-        back_populates="event",
-        cascade="all, delete-orphan",
-        passive_deletes=True,
-        lazy="selectin",
+        "Guest", back_populates="event", cascade="all, delete-orphan", passive_deletes=True
     )
     expenses = relationship(
-        "Expense",
-        back_populates="event",
-        cascade="all, delete-orphan",
-        passive_deletes=True,
-        lazy="selectin",
+        "Expense", back_populates="event", cascade="all, delete-orphan", passive_deletes=True
     )
     tasks = relationship(
-        "Task",
-        back_populates="event",
-        cascade="all, delete-orphan",
-        passive_deletes=True,
-        lazy="selectin",
+        "Task", back_populates="event", cascade="all, delete-orphan", passive_deletes=True
     )
 
     __table_args__ = (

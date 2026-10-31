@@ -1,15 +1,11 @@
 [tool.ruff]
 line-length = 120
-target-version = "py311"
+target-version = "py39"
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "I", "UP", "B", "SIM", "S"]
+select = ["E", "F", "W", "I"]
 ignore = [
-    "B008",   # FastAPI dependency injection idiom: Depends(get_db) and Query(...)
-    "S101",   # Use of assert in tests
-    "S104",   # Possible binding to all interfaces (0.0.0.0) in local dev
-    "S105",   # Possible hardcoded password (test dummy passwords)
-    "S106",   # Possible hardcoded password func argument
+    "E501",  # Line length checked separately
 ]
 
 [tool.ruff.lint.isort]

@@ -4,9 +4,8 @@ Implements the repository pattern with zero N+1 database queries, strict capacit
 validation, and comprehensive seed data for FestivaFlow.
 """
 
-from __future__ import annotations
-
 from datetime import date, datetime, timedelta
+from typing import List, Optional, Tuple
 
 from sqlalchemy import case, func, or_
 from sqlalchemy.orm import Session
@@ -37,10 +36,10 @@ def get_events(
     db: Session,
     skip: int = 0,
     limit: int = 20,
-    search: str | None = None,
-    status: str | None = None,
-    category: str | None = None,
-) -> tuple[list[Event], int]:
+    search: Optional[str] = None,
+    status: Optional[str] = None,
+    category: Optional[str] = None,
+) -> Tuple[List[Event], int]:
     """Retrieve a paginated and filtered list of celebration events with total count.
 
     Args:
@@ -82,7 +81,7 @@ def get_events(
     return events, total_count
 
 
-def get_event(db: Session, event_id: int) -> Event | None:
+def get_event(db: Session, event_id: int) -> Optional[Event]:
     """Retrieve a single event by primary key ID.
 
     Args:
@@ -114,7 +113,7 @@ def create_event(db: Session, event_in: EventCreate) -> Event:
 
 def update_event(
     db: Session, event_id: int, event_in: EventUpdate
-) -> Event | None:
+) -> Optional[Event]:
     """Update fields on an existing celebration event.
 
     Args:
@@ -321,7 +320,7 @@ def get_event_task_summary(db: Session, event_id: int) -> EventTaskSummary:
 # ============================================================================
 
 def validate_capacity_headroom(
-    db: Session, event: Event, requested_headcount: int, exclude_guest_id: int | None = None
+    db: Session, event: Event, requested_headcount: int, exclude_guest_id: Optional[int] = None
 ) -> None:
     """Validate that admitting the requested guest headcount will not breach event capacity.
 
@@ -357,7 +356,7 @@ def validate_capacity_headroom(
         )
 
 
-def get_guests(db: Session, event_id: int) -> list[Guest]:
+def get_guests(db: Session, event_id: int) -> List[Guest]:
     """Retrieve all guests registered for an event.
 
     Args:
@@ -375,7 +374,7 @@ def get_guests(db: Session, event_id: int) -> list[Guest]:
     )
 
 
-def get_guest(db: Session, guest_id: int) -> Guest | None:
+def get_guest(db: Session, guest_id: int) -> Optional[Guest]:
     """Retrieve a single guest by ID.
 
     Args:
@@ -419,7 +418,7 @@ def create_guest(db: Session, event_id: int, guest_in: GuestCreate) -> Guest:
 
 def update_guest(
     db: Session, guest_id: int, guest_in: GuestUpdate
-) -> Guest | None:
+) -> Optional[Guest]:
     """Update a guest record with capacity checking if attendance changes.
 
     Args:
@@ -482,7 +481,7 @@ def delete_guest(db: Session, guest_id: int) -> bool:
 # EXPENSE OPERATIONS
 # ============================================================================
 
-def get_expenses(db: Session, event_id: int) -> list[Expense]:
+def get_expenses(db: Session, event_id: int) -> List[Expense]:
     """Retrieve all expense items logged for an event.
 
     Args:
@@ -500,7 +499,7 @@ def get_expenses(db: Session, event_id: int) -> list[Expense]:
     )
 
 
-def get_expense(db: Session, expense_id: int) -> Expense | None:
+def get_expense(db: Session, expense_id: int) -> Optional[Expense]:
     """Retrieve an expense item by ID.
 
     Args:
@@ -539,7 +538,7 @@ def create_expense(
 
 def update_expense(
     db: Session, expense_id: int, expense_in: ExpenseUpdate
-) -> Expense | None:
+) -> Optional[Expense]:
     """Update an expense item.
 
     Args:
@@ -585,7 +584,7 @@ def delete_expense(db: Session, expense_id: int) -> bool:
 # TASK / MILESTONE OPERATIONS
 # ============================================================================
 
-def get_tasks(db: Session, event_id: int) -> list[Task]:
+def get_tasks(db: Session, event_id: int) -> List[Task]:
     """Retrieve all checklist milestones for an event.
 
     Args:
@@ -603,7 +602,7 @@ def get_tasks(db: Session, event_id: int) -> list[Task]:
     )
 
 
-def get_task(db: Session, task_id: int) -> Task | None:
+def get_task(db: Session, task_id: int) -> Optional[Task]:
     """Retrieve a single task milestone by ID.
 
     Args:
@@ -640,7 +639,7 @@ def create_task(db: Session, event_id: int, task_in: TaskCreate) -> Task:
 
 def update_task(
     db: Session, task_id: int, task_in: TaskUpdate
-) -> Task | None:
+) -> Optional[Task]:
     """Update a task milestone.
 
     Args:
@@ -690,10 +689,10 @@ def get_vendors(
     db: Session,
     skip: int = 0,
     limit: int = 50,
-    service_type: str | None = None,
-    status: str | None = None,
-    search: str | None = None,
-) -> tuple[list[Vendor], int]:
+    service_type: Optional[str] = None,
+    status: Optional[str] = None,
+    search: Optional[str] = None,
+) -> Tuple[List[Vendor], int]:
     """Retrieve vendors with optional filtering and search.
 
     Args:
@@ -730,7 +729,7 @@ def get_vendors(
     return vendors, total_count
 
 
-def get_vendor(db: Session, vendor_id: int) -> Vendor | None:
+def get_vendor(db: Session, vendor_id: int) -> Optional[Vendor]:
     """Retrieve a single vendor by ID.
 
     Args:
@@ -762,7 +761,7 @@ def create_vendor(db: Session, vendor_in: VendorCreate) -> Vendor:
 
 def update_vendor(
     db: Session, vendor_id: int, vendor_in: VendorUpdate
-) -> Vendor | None:
+) -> Optional[Vendor]:
     """Update an existing vendor record.
 
     Args:
@@ -924,10 +923,7 @@ def seed_demo_data(db: Session) -> None:
     # 1. Seed 3 Diverse Events
     event1 = Event(
         title="Global AI & Web Innovators Hackathon 2026",
-        description=(
-            "A 48-hour competitive sprint bringing together engineers, designers, "
-            "and founders to build next-generation applications."
-        ),
+        description="A 48-hour competitive sprint bringing together engineers, designers, and founders to build next-generation applications.",
         category="Hackathon",
         event_date=now + timedelta(days=21),
         venue="Metropolitan Innovation Center, Hall A & B, San Francisco, CA",
@@ -939,10 +935,7 @@ def seed_demo_data(db: Session) -> None:
 
     event2 = Event(
         title="Grand Sapphire 50th Jubilee Gala",
-        description=(
-            "An elegant black-tie golden anniversary dinner celebrating five decades "
-            "of family, philanthropy, and milestone memories."
-        ),
+        description="An elegant black-tie golden anniversary dinner celebrating five decades of family, philanthropy, and milestone memories.",
         category="Anniversaries",
         event_date=now + timedelta(days=45),
         venue="The Grand Regal Ballroom, 5th Avenue, New York, NY",
@@ -954,10 +947,7 @@ def seed_demo_data(db: Session) -> None:
 
     event3 = Event(
         title="Solstice Bloom Spring Music & Arts Festival",
-        description=(
-            "An outdoor open-air community celebration featuring indie bands, "
-            "artisanal food trucks, live muralists, and interactive art exhibits."
-        ),
+        description="An outdoor open-air community celebration featuring indie bands, artisanal food trucks, live muralists, and interactive art exhibits.",
         category="Festivals",
         event_date=now + timedelta(days=70),
         venue="Sunset Meadow Amphitheater & Gardens, Austin, TX",

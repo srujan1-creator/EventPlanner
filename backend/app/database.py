@@ -15,7 +15,11 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, declarative_base, sessionmaker
 
 # Environment variable configuration with safe fallback for local/test/Vercel environments
-_is_serverless = bool(os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME"))
+_is_serverless = bool(
+    os.getenv("VERCEL")
+    or os.getenv("VERCEL_ENV")
+    or os.getenv("AWS_LAMBDA_FUNCTION_NAME")
+)
 _db_filename = (
     os.path.join(tempfile.gettempdir(), "festivaflow.db").replace("\\", "/")
     if _is_serverless

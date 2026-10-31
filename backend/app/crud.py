@@ -4,6 +4,8 @@ Implements the repository pattern with zero N+1 database queries, strict capacit
 validation, and comprehensive seed data for FestivaFlow.
 """
 
+from __future__ import annotations
+
 from datetime import date, datetime, timedelta
 
 from sqlalchemy import case, func, or_

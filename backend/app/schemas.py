@@ -4,6 +4,8 @@ Features field length constraints, regex validators, XSS input sanitization,
 and comprehensive DTOs for FestivaFlow API endpoints.
 """
 
+from __future__ import annotations
+
 from datetime import date, datetime
 from typing import Any
 

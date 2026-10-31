@@ -4,6 +4,8 @@ Integrates database lifespan seeding, hardened security middleware,
 robust RESTful API endpoints, and static file serving for FestivaFlow.
 """
 
+from __future__ import annotations
+
 import csv
 import io
 import json
@@ -61,8 +63,8 @@ logger = logging.getLogger("festivaflow")
 # ============================================================================
 
 # Create database schema tables and ensure seed data exists immediately upon module import
-Base.metadata.create_all(bind=engine)
 try:
+    Base.metadata.create_all(bind=engine)
     _init_db = SessionLocal()
     crud.seed_demo_data(_init_db)
     _init_db.close()

@@ -10,8 +10,9 @@ from sqlalchemy import create_engine, event
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import declarative_base, sessionmaker, Session
 
-# Environment variable configuration with safe fallback for local/test environments
-DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./festivaflow.db")
+# Environment variable configuration with safe fallback for local/test/Vercel environments
+_default_db_path = "/tmp/festivaflow.db" if (os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME")) else "./festivaflow.db"
+DATABASE_URL: str = os.getenv("DATABASE_URL", f"sqlite:///{_default_db_path}")
 
 # SQLite connection arguments: disabling thread check for multi-threaded ASGI servers
 connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}

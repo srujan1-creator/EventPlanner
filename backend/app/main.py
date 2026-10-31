@@ -58,8 +58,14 @@ from backend.app import crud
 # LIFESPAN & APPLICATION SETUP
 # ============================================================================
 
-# Create database schema tables immediately upon module import
+# Create database schema tables and ensure seed data exists immediately upon module import
 Base.metadata.create_all(bind=engine)
+try:
+    _init_db = SessionLocal()
+    crud.seed_demo_data(_init_db)
+    _init_db.close()
+except Exception:
+    pass
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

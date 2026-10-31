@@ -95,8 +95,9 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# 1. High-Efficiency Response Compression (GZip for all responses > 500 bytes)
-app.add_middleware(GZipMiddleware, minimum_size=500)
+# 1. High-Efficiency Response Compression for standalone runtimes (Vercel provides edge compression)
+if not os.getenv("VERCEL"):
+    app.add_middleware(GZipMiddleware, minimum_size=500)
 
 # 2. Rate Limiting Middleware
 app.add_middleware(SlidingWindowRateLimiter, requests_per_minute=100)

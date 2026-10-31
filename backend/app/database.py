@@ -4,18 +4,20 @@ Provides SQLite connection pooling, foreign key constraint enforcement,
 and context-managed database session generators.
 """
 
+import logging
 import os
-import tempfile
 from collections.abc import Generator
 
 from sqlalchemy import create_engine, event
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, declarative_base, sessionmaker
 
+logger = logging.getLogger("festivaflow.database")
+
 # Environment variable configuration with safe fallback for local/test/Vercel environments
 _is_serverless = bool(os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME"))
 _default_db_path = (
-    os.path.join(tempfile.gettempdir(), "festivaflow.db")
+    "/tmp/festivaflow.db"  # noqa: S108
     if _is_serverless
     else "./festivaflow.db"
 )
@@ -42,12 +44,15 @@ def set_sqlite_pragma(dbapi_connection, connection_record) -> None:
     """
     if DATABASE_URL.startswith("sqlite"):
         cursor = dbapi_connection.cursor()
-        cursor.execute("PRAGMA foreign_keys=ON")
-        cursor.execute("PRAGMA journal_mode=WAL")
-        cursor.execute("PRAGMA synchronous=NORMAL")
-        cursor.execute("PRAGMA cache_size=-64000")
-        cursor.execute("PRAGMA temp_store=MEMORY")
-        cursor.close()
+        try:
+            cursor.execute("PRAGMA foreign_keys=ON")
+            cursor.execute("PRAGMA synchronous=NORMAL")
+            cursor.execute("PRAGMA cache_size=-64000")
+            cursor.execute("PRAGMA temp_store=MEMORY")
+        except Exception as exc:
+            logger.debug("SQLite pragma notice: %s", exc)
+        finally:
+            cursor.close()
 
 
 # Session factory for synchronous SQLAlchemy operations

@@ -7,6 +7,7 @@ and context-managed database session generators.
 from __future__ import annotations
 
 import os
+import tempfile
 from collections.abc import Generator
 
 from sqlalchemy import create_engine, event
@@ -14,12 +15,13 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, declarative_base, sessionmaker
 
 # Environment variable configuration with safe fallback for local/test/Vercel environments
-_default_db_path = (
-    "/tmp/festivaflow.db"  # noqa: S108
-    if (os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME"))
+_is_serverless = bool(os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME"))
+_db_filename = (
+    os.path.join(tempfile.gettempdir(), "festivaflow.db").replace("\\", "/")
+    if _is_serverless
     else "./festivaflow.db"
 )
-DATABASE_URL: str = os.getenv("DATABASE_URL", f"sqlite:///{_default_db_path}")
+DATABASE_URL: str = os.getenv("DATABASE_URL", f"sqlite:///{_db_filename}")
 
 # SQLite connection arguments: disabling thread check for multi-threaded ASGI servers
 connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}

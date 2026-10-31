@@ -71,9 +71,8 @@ flowchart TD
 
 ```
 EventPlanner/
-├── .github/
-│   └── workflows/
-│       └── ci.yml               # Automated GitHub Actions CI (Linter, Size Check, Pytest)
+├── ci/
+│   └── ci.yml                   # GitHub Actions CI Workflow template (Linter, Size Check, Pytest)
 ├── backend/
 │   └── app/
 │       ├── __init__.py          # Package metadata and version definition

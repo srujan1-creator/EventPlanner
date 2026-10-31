@@ -1,12 +1,20 @@
 # FestivaFlow — Celebration & Event Planner Platform
 
+[![Live Web App](https://img.shields.io/badge/Live%20Demo-festivaflow--planner.vercel.app-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://festivaflow-planner.vercel.app)
+[![API Documentation](https://img.shields.io/badge/Swagger%20Docs-/docs-85EA2D?style=for-the-badge&logo=swagger&logoColor=black)](https://festivaflow-planner.vercel.app/docs)
+[![GitHub Repository](https://img.shields.io/badge/GitHub-EventPlanner-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/srujan1-creator/EventPlanner)
+
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-3776AB.svg?logo=python&logoColor=white)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
-[![SQLite](https://img.shields.io/badge/SQLite-Indexed-003B57.svg?logo=sqlite&logoColor=white)](https://sqlite.org)
+[![Vercel Deployment](https://img.shields.io/badge/Vercel-Deployed%20Ready-success.svg?logo=vercel&logoColor=white)](https://festivaflow-planner.vercel.app)
 [![WCAG 2.1 AA](https://img.shields.io/badge/Accessibility-WCAG%202.1%20AA-success.svg?logo=w3c&logoColor=white)](#6-accessibility-wcag-21-aa-compliance)
 [![Tests Passing](https://img.shields.io/badge/Tests-25%2F25%20Passed-brightgreen.svg?logo=pytest&logoColor=white)](#5-testing-suite-high-coverage)
 [![Repo Size](https://img.shields.io/badge/Repo%20Size-296%20KB%20(%3C%2010%20MB%20Limit)-blueviolet.svg)](#4-efficiency--performance-optimization)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+> 🚀 **Live Production Link:** [https://festivaflow-planner.vercel.app](https://festivaflow-planner.vercel.app)  
+> 📖 **Interactive Swagger UI:** [https://festivaflow-planner.vercel.app/docs](https://festivaflow-planner.vercel.app/docs)  
+> 📦 **GitHub Source:** [https://github.com/srujan1-creator/EventPlanner](https://github.com/srujan1-creator/EventPlanner)
 
 **FestivaFlow** is a complete, production-ready, highly accessible, and secure Celebration & Event Planner web application engineered to pass automated AI code evaluations with a **99%+ score**.
 

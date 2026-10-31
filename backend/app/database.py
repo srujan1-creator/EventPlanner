@@ -4,15 +4,21 @@ Provides SQLite connection pooling, foreign key constraint enforcement,
 and context-managed database session generators.
 """
 
+from __future__ import annotations
+
 import os
-from typing import Generator
+from collections.abc import Generator
 
 from sqlalchemy import create_engine, event
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, declarative_base, sessionmaker
 
 # Environment variable configuration with safe fallback for local/test/Vercel environments
-_default_db_path = "/tmp/festivaflow.db" if (os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME")) else "./festivaflow.db"
+_default_db_path = (
+    "/tmp/festivaflow.db"
+    if (os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME"))
+    else "./festivaflow.db"
+)
 DATABASE_URL: str = os.getenv("DATABASE_URL", f"sqlite:///{_default_db_path}")
 
 # SQLite connection arguments: disabling thread check for multi-threaded ASGI servers

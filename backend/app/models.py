@@ -4,6 +4,8 @@ Includes Event, Guest, Expense, Task, and Vendor entities with explicit SQLite
 indexes for high-performance querying and referential integrity constraints.
 """
 
+from __future__ import annotations
+
 from datetime import datetime
 
 from sqlalchemy import (
@@ -63,13 +65,22 @@ class Event(Base):
 
     # Relationships with cascade deletion
     guests = relationship(
-        "Guest", back_populates="event", cascade="all, delete-orphan", passive_deletes=True
+        "Guest",
+        back_populates="event",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
     )
     expenses = relationship(
-        "Expense", back_populates="event", cascade="all, delete-orphan", passive_deletes=True
+        "Expense",
+        back_populates="event",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
     )
     tasks = relationship(
-        "Task", back_populates="event", cascade="all, delete-orphan", passive_deletes=True
+        "Task",
+        back_populates="event",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
     )
 
     __table_args__ = (
@@ -115,9 +126,7 @@ class Guest(Base):
 
     event = relationship("Event", back_populates="guests")
 
-    __table_args__ = (
-        Index("ix_guests_event_rsvp", "event_id", "rsvp_status"),
-    )
+    __table_args__ = (Index("ix_guests_event_rsvp", "event_id", "rsvp_status"),)
 
 
 class Expense(Base):
@@ -230,9 +239,7 @@ class Vendor(Base):
     contact_name = Column(String(100), nullable=False)
     email = Column(String(120), nullable=False)
     phone = Column(String(30), nullable=True)
-    contract_status = Column(
-        String(50), nullable=False, default="Inquiry", index=True
-    )
+    contract_status = Column(String(50), nullable=False, default="Inquiry", index=True)
     cost_estimate = Column(Float, nullable=False, default=0.0)
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)

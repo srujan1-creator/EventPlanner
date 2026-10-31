@@ -4,8 +4,10 @@ Covers Happy Paths, Edge Cases, Single-Pass Analytics Math, Security Controls,
 Input Sanitization, Rate Limiting, and Automated WCAG-aligned API validations.
 """
 
+from __future__ import annotations
+
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 
 from fastapi.testclient import TestClient
 
@@ -32,6 +34,7 @@ BYPASS_HEADER = {"X-Bypass-Rate-Limit": "true"}
 # ============================================================================
 # 1. SYSTEM HEALTH & SECURITY HEADERS TESTS
 # ============================================================================
+
 
 def test_01_health_check_status_and_metadata():
     """Verify system health endpoint returns 200 OK and valid status payload."""
@@ -72,6 +75,7 @@ def test_02_owasp_security_headers_enforcement():
 # 2. PRE-SEEDED DEMO DATA INTEGRITY TESTS
 # ============================================================================
 
+
 def test_03_preseeded_demo_data_loaded_on_startup():
     """Verify that lifespan hook populated 3 events, 12 guests, 10 expenses, 10 tasks, and 5 vendors."""
     # Verify Events
@@ -99,13 +103,14 @@ def test_03_preseeded_demo_data_loaded_on_startup():
 # 3. EVENT CRUD & SEARCH / FILTER TESTS
 # ============================================================================
 
+
 def test_04_create_event_happy_path():
     """Verify creation of a new celebration event with valid parameters."""
     event_payload = {
         "title": "Quantum Robotics Hackathon 2026",
         "description": "Annual collegiate robotics competition and banquet.",
         "category": "Hackathon",
-        "event_date": (datetime.utcnow() + timedelta(days=30)).isoformat(),
+        "event_date": (datetime.now(timezone.utc) + timedelta(days=30)).isoformat(),
         "venue": "Cybernetics Hall, Boston, MA",
         "theme_color": "#8b5cf6",
         "status": "Planned",
@@ -165,7 +170,7 @@ def test_07_update_event():
         json={
             "title": "Temporary Birthday Bash",
             "category": "Birthday",
-            "event_date": (datetime.utcnow() + timedelta(days=10)).isoformat(),
+            "event_date": (datetime.now(timezone.utc) + timedelta(days=10)).isoformat(),
             "venue": "Private Lounge",
             "total_budget": 2000.0,
             "capacity": 30,
@@ -193,7 +198,7 @@ def test_08_delete_event_cascades_children():
         json={
             "title": "Ephemeral Event for Deletion",
             "category": "Anniversaries",
-            "event_date": (datetime.utcnow() + timedelta(days=5)).isoformat(),
+            "event_date": (datetime.now(timezone.utc) + timedelta(days=5)).isoformat(),
             "venue": "Rooftop Garden",
             "total_budget": 1000.0,
             "capacity": 20,
@@ -227,6 +232,7 @@ def test_08_delete_event_cascades_children():
 # 4. GUEST & RSVP CAPACITY VALIDATION TESTS
 # ============================================================================
 
+
 def test_09_create_guest_attending_within_capacity():
     """Verify registering a guest with plus-one within capacity limits succeeds."""
     event_res = client.post(
@@ -234,7 +240,7 @@ def test_09_create_guest_attending_within_capacity():
         json={
             "title": "Capacity Testing Event",
             "category": "Birthday",
-            "event_date": (datetime.utcnow() + timedelta(days=15)).isoformat(),
+            "event_date": (datetime.now(timezone.utc) + timedelta(days=15)).isoformat(),
             "venue": "Clubhouse",
             "total_budget": 500.0,
             "capacity": 10,
@@ -267,7 +273,7 @@ def test_10_create_guest_exceeds_capacity_rejected_400():
         json={
             "title": "Intimate VIP Dinner",
             "category": "Anniversaries",
-            "event_date": (datetime.utcnow() + timedelta(days=20)).isoformat(),
+            "event_date": (datetime.now(timezone.utc) + timedelta(days=20)).isoformat(),
             "venue": "Private Chef Studio",
             "total_budget": 3000.0,
             "capacity": 2,
@@ -328,7 +334,7 @@ def test_12_update_guest_rsvp_and_capacity_recheck():
         json={
             "title": "RSVP Update Event",
             "category": "Wedding",
-            "event_date": (datetime.utcnow() + timedelta(days=40)).isoformat(),
+            "event_date": (datetime.now(timezone.utc) + timedelta(days=40)).isoformat(),
             "venue": "Vineyard",
             "total_budget": 8000.0,
             "capacity": 3,
@@ -365,6 +371,7 @@ def test_12_update_guest_rsvp_and_capacity_recheck():
 # 5. BUDGET & EXPENSE ENGINE TESTS
 # ============================================================================
 
+
 def test_13_create_expense_item_happy_path():
     """Verify logging an itemized expense for an event."""
     event_res = client.get("/api/events?limit=1", headers=BYPASS_HEADER)
@@ -397,7 +404,7 @@ def test_14_reject_negative_budget_and_expenses_422():
         json={
             "title": "Negative Budget Event",
             "category": "Birthday",
-            "event_date": (datetime.utcnow() + timedelta(days=10)).isoformat(),
+            "event_date": (datetime.now(timezone.utc) + timedelta(days=10)).isoformat(),
             "venue": "Park",
             "total_budget": -500.0,
         },
@@ -427,7 +434,7 @@ def test_15_budget_burn_rate_and_overspend_math():
         json={
             "title": "Financial Math Verification Event",
             "category": "Wedding",
-            "event_date": (datetime.utcnow() + timedelta(days=25)).isoformat(),
+            "event_date": (datetime.now(timezone.utc) + timedelta(days=25)).isoformat(),
             "venue": "Botanical Conservatory",
             "total_budget": 10000.0,
             "capacity": 50,
@@ -482,6 +489,7 @@ def test_15_budget_burn_rate_and_overspend_math():
 # 6. TIMELINE & CHECKLIST SCHEDULER TESTS
 # ============================================================================
 
+
 def test_16_create_and_toggle_task_completion():
     """Verify task milestone creation, toggle completion, and task rate recalculation."""
     event_res = client.post(
@@ -489,7 +497,7 @@ def test_16_create_and_toggle_task_completion():
         json={
             "title": "Task Metric Verification Event",
             "category": "Hackathon",
-            "event_date": (datetime.utcnow() + timedelta(days=12)).isoformat(),
+            "event_date": (datetime.now(timezone.utc) + timedelta(days=12)).isoformat(),
             "venue": "Campus Auditorium",
             "total_budget": 5000.0,
             "capacity": 60,
@@ -557,6 +565,7 @@ def test_17_task_priority_validation_422():
 # 7. VENDOR & VENUE DIRECTORY TESTS
 # ============================================================================
 
+
 def test_18_vendor_directory_crud():
     """Verify full lifecycle operations on Vendor directory."""
     # Create
@@ -597,6 +606,7 @@ def test_18_vendor_directory_crud():
 # 8. ANALYTICS & EXPORT TESTS
 # ============================================================================
 
+
 def test_19_global_analytics_dashboard_metrics():
     """Verify platform-wide analytics calculations and distributions."""
     response = client.get("/api/analytics", headers=BYPASS_HEADER)
@@ -617,7 +627,9 @@ def test_20_export_event_plan_json():
     res_events = client.get("/api/events?limit=1", headers=BYPASS_HEADER)
     event_id = res_events.json()["items"][0]["id"]
 
-    response = client.get(f"/api/events/{event_id}/export?format=json", headers=BYPASS_HEADER)
+    response = client.get(
+        f"/api/events/{event_id}/export?format=json", headers=BYPASS_HEADER
+    )
     assert response.status_code == 200
     assert "application/json" in response.headers["content-type"]
     assert "attachment;" in response.headers.get("content-disposition", "")
@@ -635,7 +647,9 @@ def test_21_export_event_plan_csv():
     res_events = client.get("/api/events?limit=1", headers=BYPASS_HEADER)
     event_id = res_events.json()["items"][0]["id"]
 
-    response = client.get(f"/api/events/{event_id}/export?format=csv", headers=BYPASS_HEADER)
+    response = client.get(
+        f"/api/events/{event_id}/export?format=csv", headers=BYPASS_HEADER
+    )
     assert response.status_code == 200
     assert "text/csv" in response.headers["content-type"]
     assert "attachment;" in response.headers.get("content-disposition", "")
@@ -651,6 +665,7 @@ def test_21_export_event_plan_csv():
 # 9. SECURITY & SANITIZATION TESTS
 # ============================================================================
 
+
 def test_22_xss_payload_sanitization():
     """Verify that script tags and dangerous HTML are neutralized via HTML-escaping."""
     malicious_title = "<script>alert('XSS_ATTACK')</script>Anniversary Party"
@@ -661,7 +676,7 @@ def test_22_xss_payload_sanitization():
         json={
             "title": malicious_title,
             "category": "Anniversaries",
-            "event_date": (datetime.utcnow() + timedelta(days=20)).isoformat(),
+            "event_date": (datetime.now(timezone.utc) + timedelta(days=20)).isoformat(),
             "venue": "<b>Grand Palace</b>",
             "description": malicious_notes,
             "total_budget": 5000.0,
@@ -691,8 +706,15 @@ def test_24_nonexistent_entity_404_handling():
     """Verify querying non-existent entities returns structured 404 Not Found."""
     assert client.get("/api/events/999999", headers=BYPASS_HEADER).status_code == 404
     assert client.delete("/api/events/999999", headers=BYPASS_HEADER).status_code == 404
-    assert client.put("/api/guests/999999", json={"name": "Ghost"}, headers=BYPASS_HEADER).status_code == 404
-    assert client.delete("/api/expenses/999999", headers=BYPASS_HEADER).status_code == 404
+    assert (
+        client.put(
+            "/api/guests/999999", json={"name": "Ghost"}, headers=BYPASS_HEADER
+        ).status_code
+        == 404
+    )
+    assert (
+        client.delete("/api/expenses/999999", headers=BYPASS_HEADER).status_code == 404
+    )
     assert client.delete("/api/tasks/999999", headers=BYPASS_HEADER).status_code == 404
     assert client.get("/api/vendors/999999", headers=BYPASS_HEADER).status_code == 404
 
@@ -712,4 +734,6 @@ def test_25_rate_limiter_enforcement():
             assert "Rate limit" in resp.json()["detail"]
             break
 
-    assert hit_429, "Expected 429 Too Many Requests response after exceeding window rate limit."
+    assert hit_429, (
+        "Expected 429 Too Many Requests response after exceeding window rate limit."
+    )

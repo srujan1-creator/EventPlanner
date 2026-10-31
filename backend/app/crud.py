@@ -4,8 +4,9 @@ Implements the repository pattern with zero N+1 database queries, strict capacit
 validation, and comprehensive seed data for FestivaFlow.
 """
 
-from datetime import date, datetime, timedelta
-from typing import List, Optional, Tuple
+from __future__ import annotations
+
+from datetime import date, datetime, timezone, timedelta
 
 from sqlalchemy import case, func, or_
 from sqlalchemy.orm import Session
@@ -32,14 +33,15 @@ from backend.app.schemas import (
 # EVENT OPERATIONS
 # ============================================================================
 
+
 def get_events(
     db: Session,
     skip: int = 0,
     limit: int = 20,
-    search: Optional[str] = None,
-    status: Optional[str] = None,
-    category: Optional[str] = None,
-) -> Tuple[List[Event], int]:
+    search: str | None = None,
+    status: str | None = None,
+    category: str | None = None,
+) -> tuple[list[Event], int]:
     """Retrieve a paginated and filtered list of celebration events with total count.
 
     Args:
@@ -72,16 +74,11 @@ def get_events(
         query = query.filter(Event.category == category)
 
     total_count = query.count()
-    events = (
-        query.order_by(Event.event_date.asc())
-        .offset(skip)
-        .limit(limit)
-        .all()
-    )
+    events = query.order_by(Event.event_date.asc()).offset(skip).limit(limit).all()
     return events, total_count
 
 
-def get_event(db: Session, event_id: int) -> Optional[Event]:
+def get_event(db: Session, event_id: int) -> Event | None:
     """Retrieve a single event by primary key ID.
 
     Args:
@@ -111,9 +108,7 @@ def create_event(db: Session, event_in: EventCreate) -> Event:
     return event
 
 
-def update_event(
-    db: Session, event_id: int, event_in: EventUpdate
-) -> Optional[Event]:
+def update_event(db: Session, event_id: int, event_in: EventUpdate) -> Event | None:
     """Update fields on an existing celebration event.
 
     Args:
@@ -132,7 +127,7 @@ def update_event(
     for field, value in update_data.items():
         setattr(event, field, value)
 
-    event.updated_at = datetime.utcnow()
+    event.updated_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(event)
     return event
@@ -160,6 +155,7 @@ def delete_event(db: Session, event_id: int) -> bool:
 # ============================================================================
 # AGGREGATION & SUMMARY CALCULATIONS (SINGLE-PASS SQL)
 # ============================================================================
+
 
 def get_event_budget_summary(db: Session, event: Event) -> EventBudgetSummary:
     """Compute financial metrics using single-pass SQL aggregation.
@@ -302,9 +298,7 @@ def get_event_task_summary(db: Session, event_id: int) -> EventTaskSummary:
     completed_tasks = int(stats.completed or 0)
     pending_tasks = total_tasks - completed_tasks
     completion_rate_pct = (
-        round((completed_tasks / total_tasks) * 100.0, 2)
-        if total_tasks > 0
-        else 0.0
+        round((completed_tasks / total_tasks) * 100.0, 2) if total_tasks > 0 else 0.0
     )
 
     return EventTaskSummary(
@@ -319,8 +313,12 @@ def get_event_task_summary(db: Session, event_id: int) -> EventTaskSummary:
 # GUEST OPERATIONS (WITH AUTOMATED CAPACITY VALIDATION)
 # ============================================================================
 
+
 def validate_capacity_headroom(
-    db: Session, event: Event, requested_headcount: int, exclude_guest_id: Optional[int] = None
+    db: Session,
+    event: Event,
+    requested_headcount: int,
+    exclude_guest_id: int | None = None,
 ) -> None:
     """Validate that admitting the requested guest headcount will not breach event capacity.
 
@@ -356,7 +354,7 @@ def validate_capacity_headroom(
         )
 
 
-def get_guests(db: Session, event_id: int) -> List[Guest]:
+def get_guests(db: Session, event_id: int) -> list[Guest]:
     """Retrieve all guests registered for an event.
 
     Args:
@@ -374,7 +372,7 @@ def get_guests(db: Session, event_id: int) -> List[Guest]:
     )
 
 
-def get_guest(db: Session, guest_id: int) -> Optional[Guest]:
+def get_guest(db: Session, guest_id: int) -> Guest | None:
     """Retrieve a single guest by ID.
 
     Args:
@@ -416,9 +414,7 @@ def create_guest(db: Session, event_id: int, guest_in: GuestCreate) -> Guest:
     return guest
 
 
-def update_guest(
-    db: Session, guest_id: int, guest_in: GuestUpdate
-) -> Optional[Guest]:
+def update_guest(db: Session, guest_id: int, guest_in: GuestUpdate) -> Guest | None:
     """Update a guest record with capacity checking if attendance changes.
 
     Args:
@@ -447,9 +443,7 @@ def update_guest(
 
     if new_status == "Attending":
         headcount = 1 + new_plus_ones
-        validate_capacity_headroom(
-            db, event, headcount, exclude_guest_id=guest.id
-        )
+        validate_capacity_headroom(db, event, headcount, exclude_guest_id=guest.id)
 
     for field, value in update_data.items():
         setattr(guest, field, value)
@@ -481,7 +475,8 @@ def delete_guest(db: Session, guest_id: int) -> bool:
 # EXPENSE OPERATIONS
 # ============================================================================
 
-def get_expenses(db: Session, event_id: int) -> List[Expense]:
+
+def get_expenses(db: Session, event_id: int) -> list[Expense]:
     """Retrieve all expense items logged for an event.
 
     Args:
@@ -499,7 +494,7 @@ def get_expenses(db: Session, event_id: int) -> List[Expense]:
     )
 
 
-def get_expense(db: Session, expense_id: int) -> Optional[Expense]:
+def get_expense(db: Session, expense_id: int) -> Expense | None:
     """Retrieve an expense item by ID.
 
     Args:
@@ -512,9 +507,7 @@ def get_expense(db: Session, expense_id: int) -> Optional[Expense]:
     return db.query(Expense).filter(Expense.id == expense_id).first()
 
 
-def create_expense(
-    db: Session, event_id: int, expense_in: ExpenseCreate
-) -> Expense:
+def create_expense(db: Session, event_id: int, expense_in: ExpenseCreate) -> Expense:
     """Create an expense line item.
 
     Args:
@@ -538,7 +531,7 @@ def create_expense(
 
 def update_expense(
     db: Session, expense_id: int, expense_in: ExpenseUpdate
-) -> Optional[Expense]:
+) -> Expense | None:
     """Update an expense item.
 
     Args:
@@ -584,7 +577,8 @@ def delete_expense(db: Session, expense_id: int) -> bool:
 # TASK / MILESTONE OPERATIONS
 # ============================================================================
 
-def get_tasks(db: Session, event_id: int) -> List[Task]:
+
+def get_tasks(db: Session, event_id: int) -> list[Task]:
     """Retrieve all checklist milestones for an event.
 
     Args:
@@ -602,7 +596,7 @@ def get_tasks(db: Session, event_id: int) -> List[Task]:
     )
 
 
-def get_task(db: Session, task_id: int) -> Optional[Task]:
+def get_task(db: Session, task_id: int) -> Task | None:
     """Retrieve a single task milestone by ID.
 
     Args:
@@ -637,9 +631,7 @@ def create_task(db: Session, event_id: int, task_in: TaskCreate) -> Task:
     return task
 
 
-def update_task(
-    db: Session, task_id: int, task_in: TaskUpdate
-) -> Optional[Task]:
+def update_task(db: Session, task_id: int, task_in: TaskUpdate) -> Task | None:
     """Update a task milestone.
 
     Args:
@@ -685,14 +677,15 @@ def delete_task(db: Session, task_id: int) -> bool:
 # VENDOR DIRECTORY OPERATIONS
 # ============================================================================
 
+
 def get_vendors(
     db: Session,
     skip: int = 0,
     limit: int = 50,
-    service_type: Optional[str] = None,
-    status: Optional[str] = None,
-    search: Optional[str] = None,
-) -> Tuple[List[Vendor], int]:
+    service_type: str | None = None,
+    status: str | None = None,
+    search: str | None = None,
+) -> tuple[list[Vendor], int]:
     """Retrieve vendors with optional filtering and search.
 
     Args:
@@ -729,7 +722,7 @@ def get_vendors(
     return vendors, total_count
 
 
-def get_vendor(db: Session, vendor_id: int) -> Optional[Vendor]:
+def get_vendor(db: Session, vendor_id: int) -> Vendor | None:
     """Retrieve a single vendor by ID.
 
     Args:
@@ -761,7 +754,7 @@ def create_vendor(db: Session, vendor_in: VendorCreate) -> Vendor:
 
 def update_vendor(
     db: Session, vendor_id: int, vendor_in: VendorUpdate
-) -> Optional[Vendor]:
+) -> Vendor | None:
     """Update an existing vendor record.
 
     Args:
@@ -807,6 +800,7 @@ def delete_vendor(db: Session, vendor_id: int) -> bool:
 # GLOBAL ANALYTICS (SINGLE-PASS SQL)
 # ============================================================================
 
+
 def get_global_analytics(db: Session) -> GlobalAnalyticsResponse:
     """Aggregate high-level platform health metrics across all events.
 
@@ -828,9 +822,7 @@ def get_global_analytics(db: Session) -> GlobalAnalyticsResponse:
     total_guests = int(guest_stats.total or 0)
     total_attending = int(guest_stats.attending or 0)
     rsvp_conversion_rate = (
-        round((total_attending / total_guests) * 100.0, 2)
-        if total_guests > 0
-        else 0.0
+        round((total_attending / total_guests) * 100.0, 2) if total_guests > 0 else 0.0
     )
 
     # Financial metrics
@@ -856,16 +848,12 @@ def get_global_analytics(db: Session) -> GlobalAnalyticsResponse:
     total_tasks = int(task_stats.total or 0)
     completed_tasks = int(task_stats.completed or 0)
     task_completion_pct = (
-        round((completed_tasks / total_tasks) * 100.0, 2)
-        if total_tasks > 0
-        else 0.0
+        round((completed_tasks / total_tasks) * 100.0, 2) if total_tasks > 0 else 0.0
     )
 
     # Category distribution
     cat_rows = (
-        db.query(Event.category, func.count(Event.id))
-        .group_by(Event.category)
-        .all()
+        db.query(Event.category, func.count(Event.id)).group_by(Event.category).all()
     )
     category_distribution = {cat: count for cat, count in cat_rows}
 
@@ -883,9 +871,7 @@ def get_global_analytics(db: Session) -> GlobalAnalyticsResponse:
         .group_by(Expense.category)
         .all()
     )
-    expense_category_distribution = {
-        cat: round(float(val), 2) for cat, val in exp_rows
-    }
+    expense_category_distribution = {cat: round(float(val), 2) for cat, val in exp_rows}
 
     return GlobalAnalyticsResponse(
         total_events=total_events,
@@ -908,6 +894,7 @@ def get_global_analytics(db: Session) -> GlobalAnalyticsResponse:
 # DEMO DATA SEEDER (3 EVENTS, 12 GUESTS, 10 EXPENSES, 10 TASKS, 5 VENDORS)
 # ============================================================================
 
+
 def seed_demo_data(db: Session) -> None:
     """Pre-seed database with realistic sample data if empty.
 
@@ -917,8 +904,8 @@ def seed_demo_data(db: Session) -> None:
     if db.query(Event).count() > 0:
         return
 
-    now = datetime.utcnow()
-    today = date.today()
+    now = datetime.now(timezone.utc)
+    today = datetime.now(timezone.utc).date()
 
     # 1. Seed 3 Diverse Events
     event1 = Event(
@@ -1016,7 +1003,6 @@ def seed_demo_data(db: Session) -> None:
             plus_one_count=0,
             notes="Schedule conflict with international conference.",
         ),
-
         # Event 2: Gala (4 guests)
         Guest(
             event_id=event2.id,
@@ -1058,7 +1044,6 @@ def seed_demo_data(db: Session) -> None:
             plus_one_count=0,
             notes="Delivering toast at 8:30 PM.",
         ),
-
         # Event 3: Festival (3 guests)
         Guest(
             event_id=event3.id,
@@ -1136,7 +1121,6 @@ def seed_demo_data(db: Session) -> None:
             due_date=today + timedelta(days=12),
             notes="Final delivery invoice pending arrival.",
         ),
-
         # Event 2: Gala (3 expenses)
         Expense(
             event_id=event2.id,
@@ -1168,7 +1152,6 @@ def seed_demo_data(db: Session) -> None:
             due_date=today + timedelta(days=30),
             notes="50% deposit paid; remaining balance due night of gala.",
         ),
-
         # Event 3: Festival (3 expenses)
         Expense(
             event_id=event3.id,
@@ -1246,7 +1229,6 @@ def seed_demo_data(db: Session) -> None:
             is_completed=False,
             category="Program",
         ),
-
         # Event 2 Tasks (3 tasks)
         Task(
             event_id=event2.id,
@@ -1278,7 +1260,6 @@ def seed_demo_data(db: Session) -> None:
             is_completed=False,
             category="Audio/Visual",
         ),
-
         # Event 3 Tasks (3 tasks)
         Task(
             event_id=event3.id,

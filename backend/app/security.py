@@ -4,19 +4,20 @@ Implements strict XSS sanitization, in-memory sliding-window rate limiting,
 cryptographic token generation, and industry-standard security response headers.
 """
 
+from __future__ import annotations
+
 import hashlib
 import html
 import os
 import secrets
 import time
-from typing import Dict, List, Optional
 
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
 
-def sanitize_text(value: Optional[str]) -> Optional[str]:
+def sanitize_text(value: str | None) -> str | None:
     """Sanitize and HTML-escape string inputs to prevent Cross-Site Scripting (XSS).
 
     Args:
@@ -100,7 +101,7 @@ class SlidingWindowRateLimiter(BaseHTTPMiddleware):
             os.getenv("RATE_LIMIT_PER_MINUTE", str(requests_per_minute))
         )
         self.window_seconds: float = 60.0
-        self.requests_log: Dict[str, List[float]] = {}
+        self.requests_log: dict[str, list[float]] = {}
         self.rate_limiting_enabled: bool = (
             os.getenv("ENABLE_RATE_LIMIT", "true").lower() == "true"
         )
@@ -116,7 +117,10 @@ class SlidingWindowRateLimiter(BaseHTTPMiddleware):
             Response: Call outcome or 429 Too Many Requests JSON response.
         """
         # Bypass rate limiting if disabled or during specific internal test bypass
-        if not self.rate_limiting_enabled or request.headers.get("X-Bypass-Rate-Limit") == "true":
+        if (
+            not self.rate_limiting_enabled
+            or request.headers.get("X-Bypass-Rate-Limit") == "true"
+        ):
             return await call_next(request)
 
         client_ip = request.client.host if request.client else "unknown_client"

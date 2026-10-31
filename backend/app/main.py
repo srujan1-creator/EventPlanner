@@ -4,14 +4,16 @@ Integrates database lifespan seeding, hardened security middleware,
 robust RESTful API endpoints, and static file serving for FestivaFlow.
 """
 
+from __future__ import annotations
+
 import csv
 import io
 import json
 import logging
 import os
 from contextlib import asynccontextmanager
-from datetime import datetime
-from typing import Any, Dict, List, Optional
+from datetime import datetime, timezone
+from typing import Any
 
 from fastapi import (
     Depends,
@@ -59,14 +61,15 @@ from backend.app.security import (
 
 # Create database schema tables and ensure seed data exists immediately upon module import
 Base.metadata.create_all(bind=engine)
-logger = logging.getLogger('festivaflow')
+logger = logging.getLogger("festivaflow")
 
 try:
     _init_db = SessionLocal()
     crud.seed_demo_data(_init_db)
     _init_db.close()
 except (RuntimeError, ValueError, Exception) as exc:
-    logger.info('Database startup initialization notice: %s', exc)
+    logger.info("Database startup initialization notice: %s", exc)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -117,19 +120,20 @@ app.add_middleware(
 # SYSTEM HEALTH & MONITORING
 # ============================================================================
 
+
 @app.get(
     "/api/health",
     tags=["System"],
     summary="Service Health Check",
-    response_model=Dict[str, Any],
+    response_model=dict[str, Any],
 )
-def health_check() -> Dict[str, Any]:
+def health_check() -> dict[str, Any]:
     """Return operational health status and system metadata."""
     return {
         "status": "healthy",
         "service": "FestivaFlow API",
         "version": "1.0.0",
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "database": "sqlite",
     }
 
@@ -138,20 +142,21 @@ def health_check() -> Dict[str, Any]:
 # EVENT MANAGEMENT (CRUD + SUMMARIES)
 # ============================================================================
 
+
 @app.get(
     "/api/events",
     tags=["Events"],
     summary="List celebration events",
-    response_model=Dict[str, Any],
+    response_model=dict[str, Any],
 )
 def list_events(
     skip: int = Query(0, ge=0, description="Pagination offset"),
     limit: int = Query(20, ge=1, le=100, description="Page limit"),
-    search: Optional[str] = Query(None, description="Search term for title or venue"),
-    status: Optional[str] = Query(None, description="Status filter"),
-    category: Optional[str] = Query(None, description="Category filter"),
+    search: str | None = Query(None, description="Search term for title or venue"),
+    status: str | None = Query(None, description="Status filter"),
+    category: str | None = Query(None, description="Category filter"),
     db: Session = Depends(get_db),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Retrieve a paginated, filterable catalog of celebration events."""
     events, total = crud.get_events(
         db=db,
@@ -269,6 +274,7 @@ def delete_event(
 # EVENT EXPORT (JSON & CSV)
 # ============================================================================
 
+
 @app.get(
     "/api/events/{event_id}/export",
     tags=["Export"],
@@ -294,18 +300,27 @@ def export_event_plan(
     expenses = crud.get_expenses(db, event.id)
     tasks = crud.get_tasks(db, event.id)
 
-    sanitized_title = "".join(c for c in event.title if c.isalnum() or c in ("-", "_")).rstrip()
+    sanitized_title = "".join(
+        c for c in event.title if c.isalnum() or c in ("-", "_")
+    ).rstrip()
 
     if format == "json":
         data = {
-            "exported_at": datetime.utcnow().isoformat(),
+            "exported_at": datetime.now(timezone.utc).isoformat(),
             "event": EventResponse.model_validate(event).model_dump(mode="json"),
             "budget_summary": budget_summary.model_dump(),
             "rsvp_summary": rsvp_summary.model_dump(),
             "task_summary": task_summary.model_dump(),
-            "guests": [GuestResponse.model_validate(g).model_dump(mode="json") for g in guests],
-            "expenses": [ExpenseResponse.model_validate(ex).model_dump(mode="json") for ex in expenses],
-            "tasks": [TaskResponse.model_validate(t).model_dump(mode="json") for t in tasks],
+            "guests": [
+                GuestResponse.model_validate(g).model_dump(mode="json") for g in guests
+            ],
+            "expenses": [
+                ExpenseResponse.model_validate(ex).model_dump(mode="json")
+                for ex in expenses
+            ],
+            "tasks": [
+                TaskResponse.model_validate(t).model_dump(mode="json") for t in tasks
+            ],
         }
         json_str = json.dumps(data, indent=2)
         return Response(
@@ -334,52 +349,143 @@ def export_event_plan(
 
     # Section 2: Budget Summary
     writer.writerow(["=== BUDGET & FINANCIAL SUMMARY ==="])
-    writer.writerow(["Total Allocated", "Total Estimated", "Total Actual Spent", "Total Paid", "Pending", "Remaining Balance", "Burn Rate %", "Over Budget"])
-    writer.writerow([
-        budget_summary.total_budget,
-        budget_summary.total_estimated,
-        budget_summary.total_actual,
-        budget_summary.total_paid,
-        budget_summary.total_pending,
-        budget_summary.remaining_budget,
-        f"{budget_summary.burn_rate_pct}%",
-        "YES" if budget_summary.is_over_budget else "NO",
-    ])
+    writer.writerow(
+        [
+            "Total Allocated",
+            "Total Estimated",
+            "Total Actual Spent",
+            "Total Paid",
+            "Pending",
+            "Remaining Balance",
+            "Burn Rate %",
+            "Over Budget",
+        ]
+    )
+    writer.writerow(
+        [
+            budget_summary.total_budget,
+            budget_summary.total_estimated,
+            budget_summary.total_actual,
+            budget_summary.total_paid,
+            budget_summary.total_pending,
+            budget_summary.remaining_budget,
+            f"{budget_summary.burn_rate_pct}%",
+            "YES" if budget_summary.is_over_budget else "NO",
+        ]
+    )
     writer.writerow([])
 
     # Section 3: RSVP Summary
     writer.writerow(["=== RSVP & ATTENDANCE SUMMARY ==="])
-    writer.writerow(["Total Invited", "Attending", "Pending", "Declined", "Total Attendees (w/ +1)", "Capacity", "Utilization %"])
-    writer.writerow([
-        rsvp_summary.total_guests,
-        rsvp_summary.attending_count,
-        rsvp_summary.pending_count,
-        rsvp_summary.declined_count,
-        rsvp_summary.total_attendees,
-        rsvp_summary.capacity,
-        f"{rsvp_summary.capacity_utilization_pct}%",
-    ])
+    writer.writerow(
+        [
+            "Total Invited",
+            "Attending",
+            "Pending",
+            "Declined",
+            "Total Attendees (w/ +1)",
+            "Capacity",
+            "Utilization %",
+        ]
+    )
+    writer.writerow(
+        [
+            rsvp_summary.total_guests,
+            rsvp_summary.attending_count,
+            rsvp_summary.pending_count,
+            rsvp_summary.declined_count,
+            rsvp_summary.total_attendees,
+            rsvp_summary.capacity,
+            f"{rsvp_summary.capacity_utilization_pct}%",
+        ]
+    )
     writer.writerow([])
 
     # Section 4: Guests Table
     writer.writerow(["=== GUEST LIST ==="])
-    writer.writerow(["ID", "Name", "Email", "Phone", "Dietary Preferences", "RSVP Status", "Plus Ones", "Notes"])
+    writer.writerow(
+        [
+            "ID",
+            "Name",
+            "Email",
+            "Phone",
+            "Dietary Preferences",
+            "RSVP Status",
+            "Plus Ones",
+            "Notes",
+        ]
+    )
     for g in guests:
-        writer.writerow([g.id, g.name, g.email, g.phone or "", g.dietary_preferences, g.rsvp_status, g.plus_one_count, g.notes or ""])
+        writer.writerow(
+            [
+                g.id,
+                g.name,
+                g.email,
+                g.phone or "",
+                g.dietary_preferences,
+                g.rsvp_status,
+                g.plus_one_count,
+                g.notes or "",
+            ]
+        )
     writer.writerow([])
 
     # Section 5: Expenses Table
     writer.writerow(["=== ITEMIZED EXPENSES ==="])
-    writer.writerow(["ID", "Item Name", "Category", "Estimated ($)", "Actual ($)", "Paid Status", "Due Date", "Notes"])
+    writer.writerow(
+        [
+            "ID",
+            "Item Name",
+            "Category",
+            "Estimated ($)",
+            "Actual ($)",
+            "Paid Status",
+            "Due Date",
+            "Notes",
+        ]
+    )
     for ex in expenses:
-        writer.writerow([ex.id, ex.item_name, ex.category, ex.estimated_cost, ex.actual_cost, "PAID" if ex.is_paid else "PENDING", ex.due_date.isoformat() if ex.due_date else "", ex.notes or ""])
+        writer.writerow(
+            [
+                ex.id,
+                ex.item_name,
+                ex.category,
+                ex.estimated_cost,
+                ex.actual_cost,
+                "PAID" if ex.is_paid else "PENDING",
+                ex.due_date.isoformat() if ex.due_date else "",
+                ex.notes or "",
+            ]
+        )
     writer.writerow([])
 
     # Section 6: Checklist Tasks Table
     writer.writerow(["=== TIMELINE & TASKS ==="])
-    writer.writerow(["ID", "Title", "Category", "Priority", "Assignee", "Due Date", "Completed", "Description"])
+    writer.writerow(
+        [
+            "ID",
+            "Title",
+            "Category",
+            "Priority",
+            "Assignee",
+            "Due Date",
+            "Completed",
+            "Description",
+        ]
+    )
     for t in tasks:
-        writer.writerow([t.id, t.title, t.category, t.priority, t.assignee or "", t.due_date.isoformat() if t.due_date else "", "DONE" if t.is_completed else "OPEN", t.description or ""])
+        writer.writerow(
+            [
+                t.id,
+                t.title,
+                t.category,
+                t.priority,
+                t.assignee or "",
+                t.due_date.isoformat() if t.due_date else "",
+                "DONE" if t.is_completed else "OPEN",
+                t.description or "",
+            ]
+        )
 
     output.seek(0)
     return StreamingResponse(
@@ -395,16 +501,17 @@ def export_event_plan(
 # GUEST & RSVP TRACKING
 # ============================================================================
 
+
 @app.get(
     "/api/events/{event_id}/guests",
     tags=["Guests"],
     summary="List guests for event",
-    response_model=List[GuestResponse],
+    response_model=list[GuestResponse],
 )
 def list_event_guests(
     event_id: int,
     db: Session = Depends(get_db),
-) -> List[GuestResponse]:
+) -> list[GuestResponse]:
     """Retrieve all guests associated with a specific event."""
     event = crud.get_event(db, event_id)
     if not event:
@@ -490,16 +597,17 @@ def delete_guest(
 # BUDGET & EXPENSES
 # ============================================================================
 
+
 @app.get(
     "/api/events/{event_id}/expenses",
     tags=["Expenses"],
     summary="List expenses for event",
-    response_model=List[ExpenseResponse],
+    response_model=list[ExpenseResponse],
 )
 def list_event_expenses(
     event_id: int,
     db: Session = Depends(get_db),
-) -> List[ExpenseResponse]:
+) -> list[ExpenseResponse]:
     """Retrieve all logged expenses for an event."""
     event = crud.get_event(db, event_id)
     if not event:
@@ -525,9 +633,7 @@ def create_expense(
 ) -> ExpenseResponse:
     """Log a new expense line item."""
     try:
-        expense = crud.create_expense(
-            db=db, event_id=event_id, expense_in=expense_in
-        )
+        expense = crud.create_expense(db=db, event_id=event_id, expense_in=expense_in)
         return ExpenseResponse.model_validate(expense)
     except ValueError as e:
         raise HTTPException(
@@ -548,9 +654,7 @@ def update_expense(
     db: Session = Depends(get_db),
 ) -> ExpenseResponse:
     """Modify an expense record."""
-    expense = crud.update_expense(
-        db=db, expense_id=expense_id, expense_in=expense_in
-    )
+    expense = crud.update_expense(db=db, expense_id=expense_id, expense_in=expense_in)
     if not expense:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -583,16 +687,17 @@ def delete_expense(
 # TIMELINE & CHECKLIST TASKS
 # ============================================================================
 
+
 @app.get(
     "/api/events/{event_id}/tasks",
     tags=["Tasks"],
     summary="List tasks for event",
-    response_model=List[TaskResponse],
+    response_model=list[TaskResponse],
 )
 def list_event_tasks(
     event_id: int,
     db: Session = Depends(get_db),
-) -> List[TaskResponse]:
+) -> list[TaskResponse]:
     """Retrieve all milestones and checklist items for an event."""
     event = crud.get_event(db, event_id)
     if not event:
@@ -672,20 +777,21 @@ def delete_task(
 # VENDOR DIRECTORY
 # ============================================================================
 
+
 @app.get(
     "/api/vendors",
     tags=["Vendors"],
     summary="List directory vendors",
-    response_model=Dict[str, Any],
+    response_model=dict[str, Any],
 )
 def list_vendors(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
-    service_type: Optional[str] = Query(None),
-    status: Optional[str] = Query(None),
-    search: Optional[str] = Query(None),
+    service_type: str | None = Query(None),
+    status: str | None = Query(None),
+    search: str | None = Query(None),
     db: Session = Depends(get_db),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Retrieve directory vendors with filtering."""
     vendors, total = crud.get_vendors(
         db=db,
@@ -751,9 +857,7 @@ def update_vendor(
     db: Session = Depends(get_db),
 ) -> VendorResponse:
     """Modify vendor details."""
-    vendor = crud.update_vendor(
-        db=db, vendor_id=vendor_id, vendor_in=vendor_in
-    )
+    vendor = crud.update_vendor(db=db, vendor_id=vendor_id, vendor_in=vendor_in)
     if not vendor:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -786,6 +890,7 @@ def delete_vendor(
 # PLATFORM ANALYTICS DASHBOARD
 # ============================================================================
 
+
 @app.get(
     "/api/analytics",
     tags=["Analytics"],
@@ -810,6 +915,7 @@ frontend_path = os.path.abspath(
 )
 
 if os.path.isdir(frontend_path):
+
     @app.get("/", tags=["Frontend"], include_in_schema=False)
     def serve_frontend_index():
         """Serve the single-page application index HTML."""

@@ -4,8 +4,10 @@ Features field length constraints, regex validators, XSS input sanitization,
 and comprehensive DTOs for FestivaFlow API endpoints.
 """
 
+from __future__ import annotations
+
 from datetime import date, datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -22,14 +24,23 @@ class BaseSchema(BaseModel):
 # EVENT SCHEMAS
 # ============================================================================
 
+
 class EventBase(BaseSchema):
     """Core attributes for Event entities."""
 
-    title: str = Field(..., min_length=2, max_length=150, description="Title of the event")
-    description: Optional[str] = Field(None, max_length=2000, description="Detailed agenda or notes")
-    category: str = Field(..., min_length=2, max_length=50, description="Event category")
+    title: str = Field(
+        ..., min_length=2, max_length=150, description="Title of the event"
+    )
+    description: str | None = Field(
+        None, max_length=2000, description="Detailed agenda or notes"
+    )
+    category: str = Field(
+        ..., min_length=2, max_length=50, description="Event category"
+    )
     event_date: datetime = Field(..., description="Scheduled event datetime (ISO-8601)")
-    venue: str = Field(..., min_length=2, max_length=200, description="Location or venue name")
+    venue: str = Field(
+        ..., min_length=2, max_length=200, description="Location or venue name"
+    )
     theme_color: str = Field(
         "#6366f1",
         pattern=r"^#(?:[0-9a-fA-F]{3}){1,2}$",
@@ -40,8 +51,12 @@ class EventBase(BaseSchema):
         pattern=r"^(Planned|In Progress|Completed|Cancelled)$",
         description="Current state of the event",
     )
-    total_budget: float = Field(0.0, ge=0.0, description="Allocated budget in USD (must be >= 0)")
-    capacity: int = Field(50, ge=1, le=100000, description="Total maximum guest capacity")
+    total_budget: float = Field(
+        0.0, ge=0.0, description="Allocated budget in USD (must be >= 0)"
+    )
+    capacity: int = Field(
+        50, ge=1, le=100000, description="Total maximum guest capacity"
+    )
 
 
 class EventCreate(EventBase):
@@ -59,15 +74,17 @@ class EventCreate(EventBase):
 class EventUpdate(BaseSchema):
     """Payload schema for updating an existing celebration event."""
 
-    title: Optional[str] = Field(None, min_length=2, max_length=150)
-    description: Optional[str] = Field(None, max_length=2000)
-    category: Optional[str] = Field(None, min_length=2, max_length=50)
-    event_date: Optional[datetime] = None
-    venue: Optional[str] = Field(None, min_length=2, max_length=200)
-    theme_color: Optional[str] = Field(None, pattern=r"^#(?:[0-9a-fA-F]{3}){1,2}$")
-    status: Optional[str] = Field(None, pattern=r"^(Planned|In Progress|Completed|Cancelled)$")
-    total_budget: Optional[float] = Field(None, ge=0.0)
-    capacity: Optional[int] = Field(None, ge=1, le=100000)
+    title: str | None = Field(None, min_length=2, max_length=150)
+    description: str | None = Field(None, max_length=2000)
+    category: str | None = Field(None, min_length=2, max_length=50)
+    event_date: datetime | None = None
+    venue: str | None = Field(None, min_length=2, max_length=200)
+    theme_color: str | None = Field(None, pattern=r"^#(?:[0-9a-fA-F]{3}){1,2}$")
+    status: str | None = Field(
+        None, pattern=r"^(Planned|In Progress|Completed|Cancelled)$"
+    )
+    total_budget: float | None = Field(None, ge=0.0)
+    capacity: int | None = Field(None, ge=1, le=100000)
 
     @field_validator("title", "description", "category", "venue", mode="before")
     @classmethod
@@ -90,6 +107,7 @@ class EventResponse(EventBase):
 # GUEST SCHEMAS
 # ============================================================================
 
+
 class GuestBase(BaseSchema):
     """Core attributes for Guest entities."""
 
@@ -101,7 +119,9 @@ class GuestBase(BaseSchema):
         pattern=r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$",
         description="Guest email address",
     )
-    phone: Optional[str] = Field(None, max_length=30, description="Optional contact number")
+    phone: str | None = Field(
+        None, max_length=30, description="Optional contact number"
+    )
     dietary_preferences: str = Field(
         "None", max_length=100, description="Dietary restrictions or preferences"
     )
@@ -113,7 +133,9 @@ class GuestBase(BaseSchema):
     plus_one_count: int = Field(
         0, ge=0, le=10, description="Number of additional companions"
     )
-    notes: Optional[str] = Field(None, max_length=500, description="Special notes or seating requests")
+    notes: str | None = Field(
+        None, max_length=500, description="Special notes or seating requests"
+    )
 
 
 class GuestCreate(GuestBase):
@@ -131,18 +153,18 @@ class GuestCreate(GuestBase):
 class GuestUpdate(BaseSchema):
     """Payload schema for modifying an existing guest record."""
 
-    name: Optional[str] = Field(None, min_length=1, max_length=100)
-    email: Optional[str] = Field(
+    name: str | None = Field(None, min_length=1, max_length=100)
+    email: str | None = Field(
         None,
         min_length=5,
         max_length=120,
         pattern=r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$",
     )
-    phone: Optional[str] = Field(None, max_length=30)
-    dietary_preferences: Optional[str] = Field(None, max_length=100)
-    rsvp_status: Optional[str] = Field(None, pattern=r"^(Attending|Pending|Declined)$")
-    plus_one_count: Optional[int] = Field(None, ge=0, le=10)
-    notes: Optional[str] = Field(None, max_length=500)
+    phone: str | None = Field(None, max_length=30)
+    dietary_preferences: str | None = Field(None, max_length=100)
+    rsvp_status: str | None = Field(None, pattern=r"^(Attending|Pending|Declined)$")
+    plus_one_count: int | None = Field(None, ge=0, le=10)
+    notes: str | None = Field(None, max_length=500)
 
     @field_validator("name", "phone", "dietary_preferences", "notes", mode="before")
     @classmethod
@@ -165,21 +187,30 @@ class GuestResponse(GuestBase):
 # EXPENSE SCHEMAS
 # ============================================================================
 
+
 class ExpenseBase(BaseSchema):
     """Core attributes for Expense entities."""
 
-    item_name: str = Field(..., min_length=1, max_length=150, description="Line item description")
+    item_name: str = Field(
+        ..., min_length=1, max_length=150, description="Line item description"
+    )
     category: str = Field(
         ...,
         min_length=1,
         max_length=50,
         description="Expense category (Catering, Venue, Decor, Entertainment, Logistics, Marketing, Other)",
     )
-    estimated_cost: float = Field(0.0, ge=0.0, description="Projected cost in USD (must be >= 0)")
-    actual_cost: float = Field(0.0, ge=0.0, description="Incurred actual cost in USD (must be >= 0)")
+    estimated_cost: float = Field(
+        0.0, ge=0.0, description="Projected cost in USD (must be >= 0)"
+    )
+    actual_cost: float = Field(
+        0.0, ge=0.0, description="Incurred actual cost in USD (must be >= 0)"
+    )
     is_paid: bool = Field(False, description="Settlement status")
-    due_date: Optional[date] = Field(None, description="Payment deadline")
-    notes: Optional[str] = Field(None, max_length=500, description="Vendor invoice or transaction notes")
+    due_date: date | None = Field(None, description="Payment deadline")
+    notes: str | None = Field(
+        None, max_length=500, description="Vendor invoice or transaction notes"
+    )
 
 
 class ExpenseCreate(ExpenseBase):
@@ -197,13 +228,13 @@ class ExpenseCreate(ExpenseBase):
 class ExpenseUpdate(BaseSchema):
     """Payload schema for updating an existing expense item."""
 
-    item_name: Optional[str] = Field(None, min_length=1, max_length=150)
-    category: Optional[str] = Field(None, min_length=1, max_length=50)
-    estimated_cost: Optional[float] = Field(None, ge=0.0)
-    actual_cost: Optional[float] = Field(None, ge=0.0)
-    is_paid: Optional[bool] = None
-    due_date: Optional[date] = None
-    notes: Optional[str] = Field(None, max_length=500)
+    item_name: str | None = Field(None, min_length=1, max_length=150)
+    category: str | None = Field(None, min_length=1, max_length=50)
+    estimated_cost: float | None = Field(None, ge=0.0)
+    actual_cost: float | None = Field(None, ge=0.0)
+    is_paid: bool | None = None
+    due_date: date | None = None
+    notes: str | None = Field(None, max_length=500)
 
     @field_validator("item_name", "category", "notes", mode="before")
     @classmethod
@@ -226,18 +257,21 @@ class ExpenseResponse(ExpenseBase):
 # TASK SCHEMAS
 # ============================================================================
 
+
 class TaskBase(BaseSchema):
     """Core attributes for Task / Milestone checklist items."""
 
     title: str = Field(..., min_length=1, max_length=150, description="Milestone title")
-    description: Optional[str] = Field(None, max_length=1000, description="Task details")
+    description: str | None = Field(None, max_length=1000, description="Task details")
     priority: str = Field(
         "Medium",
         pattern=r"^(High|Medium|Low)$",
         description="Priority ranking",
     )
-    due_date: Optional[date] = Field(None, description="Target completion deadline")
-    assignee: Optional[str] = Field(None, max_length=100, description="Assigned team member")
+    due_date: date | None = Field(None, description="Target completion deadline")
+    assignee: str | None = Field(
+        None, max_length=100, description="Assigned team member"
+    )
     is_completed: bool = Field(False, description="Completion toggle state")
     category: str = Field("General", max_length=50, description="Milestone category")
 
@@ -257,13 +291,13 @@ class TaskCreate(TaskBase):
 class TaskUpdate(BaseSchema):
     """Payload schema for updating a task checklist item."""
 
-    title: Optional[str] = Field(None, min_length=1, max_length=150)
-    description: Optional[str] = Field(None, max_length=1000)
-    priority: Optional[str] = Field(None, pattern=r"^(High|Medium|Low)$")
-    due_date: Optional[date] = None
-    assignee: Optional[str] = Field(None, max_length=100)
-    is_completed: Optional[bool] = None
-    category: Optional[str] = Field(None, max_length=50)
+    title: str | None = Field(None, min_length=1, max_length=150)
+    description: str | None = Field(None, max_length=1000)
+    priority: str | None = Field(None, pattern=r"^(High|Medium|Low)$")
+    due_date: date | None = None
+    assignee: str | None = Field(None, max_length=100)
+    is_completed: bool | None = None
+    category: str | None = Field(None, max_length=50)
 
     @field_validator("title", "description", "assignee", "category", mode="before")
     @classmethod
@@ -286,12 +320,17 @@ class TaskResponse(TaskBase):
 # VENDOR SCHEMAS
 # ============================================================================
 
+
 class VendorBase(BaseSchema):
     """Core attributes for Vendor entities."""
 
     name: str = Field(..., min_length=1, max_length=150, description="Business name")
-    service_type: str = Field(..., min_length=1, max_length=100, description="Service specialty")
-    contact_name: str = Field(..., min_length=1, max_length=100, description="Primary contact name")
+    service_type: str = Field(
+        ..., min_length=1, max_length=100, description="Service specialty"
+    )
+    contact_name: str = Field(
+        ..., min_length=1, max_length=100, description="Primary contact name"
+    )
     email: str = Field(
         ...,
         min_length=5,
@@ -299,20 +338,26 @@ class VendorBase(BaseSchema):
         pattern=r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$",
         description="Vendor email address",
     )
-    phone: Optional[str] = Field(None, max_length=30, description="Vendor phone number")
+    phone: str | None = Field(None, max_length=30, description="Vendor phone number")
     contract_status: str = Field(
         "Inquiry",
         pattern=r"^(Inquiry|Quoted|Contract Signed|Paid in Full|Cancelled)$",
         description="Procurement contract status",
     )
-    cost_estimate: float = Field(0.0, ge=0.0, description="Quoted or estimated cost in USD")
-    notes: Optional[str] = Field(None, max_length=500, description="Vendor details or contract terms")
+    cost_estimate: float = Field(
+        0.0, ge=0.0, description="Quoted or estimated cost in USD"
+    )
+    notes: str | None = Field(
+        None, max_length=500, description="Vendor details or contract terms"
+    )
 
 
 class VendorCreate(VendorBase):
     """Payload schema for registering a vendor."""
 
-    @field_validator("name", "service_type", "contact_name", "phone", "notes", mode="before")
+    @field_validator(
+        "name", "service_type", "contact_name", "phone", "notes", mode="before"
+    )
     @classmethod
     def sanitize_vendor_text(cls, value: Any) -> Any:
         """Sanitize vendor text fields against XSS."""
@@ -324,23 +369,25 @@ class VendorCreate(VendorBase):
 class VendorUpdate(BaseSchema):
     """Payload schema for modifying a vendor profile."""
 
-    name: Optional[str] = Field(None, min_length=1, max_length=150)
-    service_type: Optional[str] = Field(None, min_length=1, max_length=100)
-    contact_name: Optional[str] = Field(None, min_length=1, max_length=100)
-    email: Optional[str] = Field(
+    name: str | None = Field(None, min_length=1, max_length=150)
+    service_type: str | None = Field(None, min_length=1, max_length=100)
+    contact_name: str | None = Field(None, min_length=1, max_length=100)
+    email: str | None = Field(
         None,
         min_length=5,
         max_length=120,
         pattern=r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$",
     )
-    phone: Optional[str] = Field(None, max_length=30)
-    contract_status: Optional[str] = Field(
+    phone: str | None = Field(None, max_length=30)
+    contract_status: str | None = Field(
         None, pattern=r"^(Inquiry|Quoted|Contract Signed|Paid in Full|Cancelled)$"
     )
-    cost_estimate: Optional[float] = Field(None, ge=0.0)
-    notes: Optional[str] = Field(None, max_length=500)
+    cost_estimate: float | None = Field(None, ge=0.0)
+    notes: str | None = Field(None, max_length=500)
 
-    @field_validator("name", "service_type", "contact_name", "phone", "notes", mode="before")
+    @field_validator(
+        "name", "service_type", "contact_name", "phone", "notes", mode="before"
+    )
     @classmethod
     def sanitize_vendor_update(cls, value: Any) -> Any:
         """Sanitize vendor update text against XSS."""
@@ -359,6 +406,7 @@ class VendorResponse(VendorBase):
 # ============================================================================
 # ANALYTICS & AGGREGATION SCHEMAS
 # ============================================================================
+
 
 class EventBudgetSummary(BaseSchema):
     """Itemized budget performance summary for a specific event."""
@@ -401,9 +449,9 @@ class EventDetailResponse(BaseSchema):
     budget_summary: EventBudgetSummary
     rsvp_summary: EventRSVPSummary
     task_summary: EventTaskSummary
-    guests: List[GuestResponse]
-    expenses: List[ExpenseResponse]
-    tasks: List[TaskResponse]
+    guests: list[GuestResponse]
+    expenses: list[ExpenseResponse]
+    tasks: list[TaskResponse]
 
 
 class GlobalAnalyticsResponse(BaseSchema):
@@ -419,9 +467,9 @@ class GlobalAnalyticsResponse(BaseSchema):
     total_tasks: int
     completed_tasks: int
     task_completion_pct: float
-    category_distribution: Dict[str, int]
-    rsvp_status_distribution: Dict[str, int]
-    expense_category_distribution: Dict[str, float]
+    category_distribution: dict[str, int]
+    rsvp_status_distribution: dict[str, int]
+    expense_category_distribution: dict[str, float]
 
 
 class MessageResponse(BaseSchema):

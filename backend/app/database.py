@@ -4,7 +4,8 @@ Provides SQLite connection pooling, foreign key constraint enforcement,
 and context-managed database session generators.
 """
 
-import logging
+from __future__ import annotations
+
 import os
 from collections.abc import Generator
 
@@ -12,13 +13,10 @@ from sqlalchemy import create_engine, event
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, declarative_base, sessionmaker
 
-logger = logging.getLogger("festivaflow.database")
-
 # Environment variable configuration with safe fallback for local/test/Vercel environments
-_is_serverless = bool(os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME"))
 _default_db_path = (
     "/tmp/festivaflow.db"  # noqa: S108
-    if _is_serverless
+    if (os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME"))
     else "./festivaflow.db"
 )
 DATABASE_URL: str = os.getenv("DATABASE_URL", f"sqlite:///{_default_db_path}")
@@ -36,7 +34,7 @@ engine: Engine = create_engine(
 
 @event.listens_for(Engine, "connect")
 def set_sqlite_pragma(dbapi_connection, connection_record) -> None:
-    """Enforce SQLite foreign keys and high-throughput performance PRAGMAs.
+    """Enforce SQLite foreign key constraints upon establishing a new connection.
 
     Args:
         dbapi_connection: Raw database-level connection instance.
@@ -44,15 +42,8 @@ def set_sqlite_pragma(dbapi_connection, connection_record) -> None:
     """
     if DATABASE_URL.startswith("sqlite"):
         cursor = dbapi_connection.cursor()
-        try:
-            cursor.execute("PRAGMA foreign_keys=ON")
-            cursor.execute("PRAGMA synchronous=NORMAL")
-            cursor.execute("PRAGMA cache_size=-64000")
-            cursor.execute("PRAGMA temp_store=MEMORY")
-        except Exception as exc:
-            logger.debug("SQLite pragma notice: %s", exc)
-        finally:
-            cursor.close()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
 
 
 # Session factory for synchronous SQLAlchemy operations
@@ -75,7 +66,7 @@ def get_db() -> Generator[Session, None, None]:
     Ensures:
         Session is closed deterministically after request lifecycle completion.
     """
-    db: Session = SessionLocal()
+    db = SessionLocal()
     try:
         yield db
     finally:

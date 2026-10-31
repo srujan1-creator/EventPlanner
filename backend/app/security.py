@@ -4,18 +4,18 @@ Implements strict XSS sanitization, in-memory sliding-window rate limiting,
 cryptographic token generation, and industry-standard security response headers.
 """
 
+import hashlib
 import html
 import os
-import time
 import secrets
-import hashlib
-from typing import Dict, List, Optional
+import time
+
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
-from starlette.responses import Response, JSONResponse
+from starlette.responses import JSONResponse, Response
 
 
-def sanitize_text(value: Optional[str]) -> Optional[str]:
+def sanitize_text(value: str | None) -> str | None:
     """Sanitize and HTML-escape string inputs to prevent Cross-Site Scripting (XSS).
 
     Args:
@@ -99,7 +99,7 @@ class SlidingWindowRateLimiter(BaseHTTPMiddleware):
             os.getenv("RATE_LIMIT_PER_MINUTE", str(requests_per_minute))
         )
         self.window_seconds: float = 60.0
-        self.requests_log: Dict[str, List[float]] = {}
+        self.requests_log: dict[str, list[float]] = {}
         self.rate_limiting_enabled: bool = (
             os.getenv("ENABLE_RATE_LIMIT", "true").lower() == "true"
         )

@@ -5,19 +5,21 @@ indexes for high-performance querying and referential integrity constraints.
 """
 
 from datetime import datetime
+
 from sqlalchemy import (
-    Column,
-    Integer,
-    String,
-    Float,
     Boolean,
-    DateTime,
+    Column,
     Date,
-    Text,
+    DateTime,
+    Float,
     ForeignKey,
     Index,
+    Integer,
+    String,
+    Text,
 )
 from sqlalchemy.orm import relationship
+
 from backend.app.database import Base
 
 
@@ -59,15 +61,27 @@ class Event(Base):
         DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
     )
 
-    # Relationships with cascade deletion
+    # Relationships with cascade deletion and eager selectin loading (prevents N+1 queries)
     guests = relationship(
-        "Guest", back_populates="event", cascade="all, delete-orphan", passive_deletes=True
+        "Guest",
+        back_populates="event",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        lazy="selectin",
     )
     expenses = relationship(
-        "Expense", back_populates="event", cascade="all, delete-orphan", passive_deletes=True
+        "Expense",
+        back_populates="event",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        lazy="selectin",
     )
     tasks = relationship(
-        "Task", back_populates="event", cascade="all, delete-orphan", passive_deletes=True
+        "Task",
+        back_populates="event",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        lazy="selectin",
     )
 
     __table_args__ = (

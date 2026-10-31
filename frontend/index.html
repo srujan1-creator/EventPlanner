@@ -338,12 +338,13 @@
       <!-- Guest Filter & Search Controls -->
       <div class="table-toolbar" role="search">
         <div class="input-with-icon search-input-flex">
+          <label for="guest-search-input" class="sr-only">Filter guests by name, email, or dietary preferences</label>
           <svg class="search-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-          <input type="text" id="guest-search-input" class="form-control form-control-sm" placeholder="Filter guests by name, email, or dietary...">
+          <input type="text" id="guest-search-input" class="form-control form-control-sm" placeholder="Filter guests by name, email, or dietary..." aria-label="Filter guests by name, email, or dietary preferences">
         </div>
         <div class="filter-select-flex">
           <label for="guest-filter-rsvp" class="sr-only">Filter guests by RSVP status</label>
-          <select id="guest-filter-rsvp" class="form-control form-control-sm">
+          <select id="guest-filter-rsvp" class="form-control form-control-sm" aria-label="Filter guests by RSVP status">
             <option value="">All RSVP Statuses</option>
             <option value="Attending">Attending Only</option>
             <option value="Pending">Pending Only</option>
@@ -404,12 +405,13 @@
       <!-- Expense Filter & Search Controls -->
       <div class="table-toolbar" role="search">
         <div class="input-with-icon search-input-flex">
+          <label for="expense-search-input" class="sr-only">Filter expenses by line item name</label>
           <svg class="search-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-          <input type="text" id="expense-search-input" class="form-control form-control-sm" placeholder="Filter expenses by line item name...">
+          <input type="text" id="expense-search-input" class="form-control form-control-sm" placeholder="Filter expenses by line item name..." aria-label="Filter expenses by line item name">
         </div>
         <div class="filter-select-flex">
           <label for="expense-filter-status" class="sr-only">Filter expenses by payment state</label>
-          <select id="expense-filter-status" class="form-control form-control-sm">
+          <select id="expense-filter-status" class="form-control form-control-sm" aria-label="Filter expenses by payment state">
             <option value="">All Payment States</option>
             <option value="paid">Paid in Full Only</option>
             <option value="pending">Pending Payment Only</option>

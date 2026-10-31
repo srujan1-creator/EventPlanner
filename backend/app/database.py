@@ -5,13 +5,20 @@ and context-managed database session generators.
 """
 
 import os
-from typing import Generator
+import tempfile
+from collections.abc import Generator
+
 from sqlalchemy import create_engine, event
 from sqlalchemy.engine import Engine
-from sqlalchemy.orm import declarative_base, sessionmaker, Session
+from sqlalchemy.orm import Session, declarative_base, sessionmaker
 
 # Environment variable configuration with safe fallback for local/test/Vercel environments
-_default_db_path = "/tmp/festivaflow.db" if (os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME")) else "./festivaflow.db"
+_is_serverless = bool(os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME"))
+_default_db_path = (
+    os.path.join(tempfile.gettempdir(), "festivaflow.db")
+    if _is_serverless
+    else "./festivaflow.db"
+)
 DATABASE_URL: str = os.getenv("DATABASE_URL", f"sqlite:///{_default_db_path}")
 
 # SQLite connection arguments: disabling thread check for multi-threaded ASGI servers
@@ -27,7 +34,7 @@ engine: Engine = create_engine(
 
 @event.listens_for(Engine, "connect")
 def set_sqlite_pragma(dbapi_connection, connection_record) -> None:
-    """Enforce SQLite foreign key constraints upon establishing a new connection.
+    """Enforce SQLite foreign keys and high-throughput performance PRAGMAs.
 
     Args:
         dbapi_connection: Raw database-level connection instance.
@@ -36,6 +43,10 @@ def set_sqlite_pragma(dbapi_connection, connection_record) -> None:
     if DATABASE_URL.startswith("sqlite"):
         cursor = dbapi_connection.cursor()
         cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.execute("PRAGMA journal_mode=WAL")
+        cursor.execute("PRAGMA synchronous=NORMAL")
+        cursor.execute("PRAGMA cache_size=-64000")
+        cursor.execute("PRAGMA temp_store=MEMORY")
         cursor.close()
 
 

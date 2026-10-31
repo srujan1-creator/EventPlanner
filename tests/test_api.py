@@ -5,12 +5,13 @@ Input Sanitization, Rate Limiting, and Automated WCAG-aligned API validations.
 """
 
 import os
-import pytest
 from datetime import datetime, timedelta
+
 from fastapi.testclient import TestClient
-from backend.app.main import app
-from backend.app.database import engine, Base, SessionLocal
+
 from backend.app import crud
+from backend.app.database import Base, SessionLocal, engine
+from backend.app.main import app
 
 # Ensure testing environment configuration
 os.environ["ENABLE_RATE_LIMIT"] = "true"
